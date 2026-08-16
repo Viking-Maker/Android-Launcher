@@ -53,20 +53,18 @@ A horizontally scrollable row of compact squircle/pill action chips situated dir
 * **States:**
   * **Selected Chip (e.g., Favorites/Pin):** Solid vibrant **Pastel Lilac** (`#D6A8FF`) background with a dark/black icon (`#11111B`).
   * **Unselected Chips:** Dark elevated surface (`#252538`) with light muted gray outline icons (`#A6ADC8`).
-* **Icon Set (Left-to-Right):**
-  1. **Pin** (*Favorites / Frequently Used*)
-  2. **4-Square Grid** (*All Applications*)
-  3. **Musical Note** (*Audio / Media Players*)
-  4. **Chat Bubble** (*Social / Messaging*)
-  5. **Code Brackets `< / >`** (*Development / Code Editors*)
-  6. **Graduation Cap** (*Education / Reference*)
-  7. **Game Controller** (*Games*)
-  8. **Paintbrush** (*Graphics / Design*)
-  9. **Wi-Fi / Radar** (*Network & Connectivity*)
-  10. **Document / Page** (*Office / Text Files*)
-  11. **Desktop Monitor** (*System Tools & Settings*)
-  12. **Globe** (*Web Browsers*)
-  13. **Three-Dots `...`** (*More / Overflow Categories*)
+* **Chip Set (Left-to-Right):**
+  1. **Pin** (*Favorites / Frequently Used*) — always shown; `FilterMode.Favorites`.
+  2. **4-Square Grid** (*All Applications*) — always shown; `FilterMode.All`.
+  3. **Game Controller** (*Games* → `GAME`).
+  4. **Musical Note / Film** (*Multimedia* → `MULTIMEDIA`, groups Audio, Video, Image).
+  5. **Chat Bubble** (*Social / Messaging* → `SOCIAL`).
+  6. **Newspaper** (*News* → `NEWS`).
+  7. **Briefcase** (*Productivity / Office* → `PRODUCTIVITY`).
+  8. **Map** (*Maps / Navigation* → `MAPS`).
+  9. **Accessibility** (*Accessibility* → `ACCESSIBILITY`) — shown only on API 31+ devices.
+  10. **Three-Dots `...`** (*Other / Uncategorized* → `OTHER`).
+  - These are the eight `NornirCategory` values plus the two filter-axis chips (`All`, `Favorites`). See ADR `0002-app-category-model.md`: `CHAT / CODE / EDUCATION / GRAPHICS / WEB / SYSTEM` from the original 13-chip set do **not** exist as Android categories and are removed. Empty categories are **hidden** (recomputed when the app list changes); `All` and `Favorites` are never hidden.
 
 ---
 
