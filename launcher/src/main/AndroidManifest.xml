@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- GREEN: Nornir is device-default-home-capable and never self-lists in the drawer.
+         - MainActivity: exported, MAIN + HOME + DEFAULT only (no LAUNCHER)
+         - launchMode=singleTask, clearTaskOnLaunch, stateNotNeeded, adjustResize
+         - separate <queries> MAIN/LAUNCHER block for package visibility (no QUERY_ALL_PACKAGES) -->
+    <application
+        android:allowBackup="true"
+        android:label="Nornir"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+</manifest>
