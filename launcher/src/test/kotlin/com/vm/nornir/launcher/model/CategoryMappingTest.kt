@@ -4,9 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * RED phase (issue #13): the model package and CategoryMapping do not exist yet.
- * These tests pin the ADR-0002/0003 mapping contract and should fail to compile/run
- * until AppItem.kt + CategoryMapping.kt are implemented.
+ * Pure-JVM coverage of [mapPlatformToNornir] across every mapping branch required by
+ * ADR-0002/0003 (issue #13). No android.* dependency is exercised here, so these run on
+ * plain JUnit without Robolectric. [AppItem.category] delegation (incl. the null->UNDEFINED
+ * normalization and the API-31 ACCESSIBILITY gate) is covered separately by [AppItemTest].
  */
 class CategoryMappingTest {
 
