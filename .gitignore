@@ -39,3 +39,7 @@ captures/
 
 # Compose / Kotlin
 .kotlin/
+
+# Agent-local scratch (Gradle home, Robolectric test home, review dumps)
+.gradle-home/
+.prime/
