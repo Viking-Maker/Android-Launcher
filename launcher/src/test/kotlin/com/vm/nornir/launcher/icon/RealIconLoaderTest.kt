@@ -28,30 +28,42 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class RealIconLoaderTest {
 
+    // Robolectric runs every test on its own JVM main thread; lift the off-main guard so
+    // the non-guard tests can exercise the seam at all. The guard test re-arms it locally.
+    // Set here (not relying on another test class) so correctness never depends on the
+    // order the test classes happen to run.
+    init {
+        RealIconLoader.ALLOW_MAIN_THREAD_FOR_TESTS = true
+    }
+
     private val context get() = ApplicationProvider.getApplicationContext<android.app.Application>()
 
     private val personalUser: UserHandle get() = Process.myUserHandle()
 
     @Test
     fun mainThreadCallThrowsBeforeTouchingSystemServices() {
-        // The other tests lift the guard globally; this one re-arms it so the off-main
-        // contract is actually exercised (the only place that must fire on the JVM).
+        // Re-arm the guard locally so the off-main contract is actually exercised; the
+        // other tests in this class (and the next) must still run unguarded.
         RealIconLoader.ALLOW_MAIN_THREAD_FOR_TESTS = false
-        var thrown: Throwable? = null
-        val mainLooper = android.os.Looper.getMainLooper()
-        val latch = java.util.concurrent.CountDownLatch(1)
-        android.os.Handler(mainLooper).post {
-            try {
-                RealIconLoader(context).get(ComponentName("com.example", ".Main"), personalUser, 160)
-            } catch (t: IllegalStateException) {
-                thrown = t // expected
-            } finally {
-                latch.countDown()
+        try {
+            var thrown: Throwable? = null
+            val mainLooper = android.os.Looper.getMainLooper()
+            val latch = java.util.concurrent.CountDownLatch(1)
+            android.os.Handler(mainLooper).post {
+                try {
+                    RealIconLoader(context).get(ComponentName("com.example", ".Main"), personalUser, 160)
+                } catch (t: IllegalStateException) {
+                    thrown = t // expected
+                } finally {
+                    latch.countDown()
+                }
             }
+            org.robolectric.Shadows.shadowOf(mainLooper).idle()
+            latch.await()
+            if (thrown == null) throw AssertionError("expected IllegalStateException on the main thread")
+        } finally {
+            RealIconLoader.ALLOW_MAIN_THREAD_FOR_TESTS = true
         }
-        org.robolectric.Shadows.shadowOf(mainLooper).idle()
-        latch.await()
-        if (thrown == null) throw AssertionError("expected IllegalStateException on the main thread")
     }
 
     @Test

@@ -13,14 +13,11 @@ import android.os.UserHandle
  * many times the cache went to the backing source (cache misses) versus served memory
  * (cache hits). Distinct densities mint distinct colors, which is what makes
  * density-keying observable.
- *
- * Also records the calling thread of each fetch, letting tests assert the off-main
- * contract is enforced by the cache (the source itself never sees the main thread).
  */
 class CountingIconSource : IconLoader {
 
     /** Immutable record of one backing-source fetch. */
-    data class Fetch(val component: ComponentName, val user: UserHandle, val density: Int, val onMainThread: Boolean)
+    data class Fetch(val component: ComponentName, val user: UserHandle, val density: Int)
 
     /** Every fetch observed, in order. */
     val fetches: List<Fetch> get() = _fetches.toList()
@@ -31,7 +28,7 @@ class CountingIconSource : IconLoader {
     private val missing = mutableSetOf<ComponentName>()
 
     override fun get(component: ComponentName, user: UserHandle, density: Int): Drawable? {
-        _fetches.add(Fetch(component, user, density, LooperCheck.onMain))
+        _fetches.add(Fetch(component, user, density))
         if (component in missing) return null
         overrides[Triple(component, user, density)]?.let { return it }
         // Deterministic per-identity color: hue from component + user + density, so two
@@ -69,9 +66,4 @@ class CountingIconSource : IconLoader {
         fun identityColor(component: ComponentName, user: UserHandle, density: Int): Int =
             0xFF000000.toInt() or (component.hashCode() * 31 + user.hashCode() * 7 + density) and 0x00FFFFFF
     }
-}
-
-/** Main-thread probe used by fakes (kept tiny; real impls use `Looper.myLooper()`). */
-private object LooperCheck {
-    val onMain: Boolean get() = Thread.currentThread().name == "main"
 }
