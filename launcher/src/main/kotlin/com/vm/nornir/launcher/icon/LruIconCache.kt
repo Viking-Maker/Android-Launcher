@@ -2,7 +2,6 @@ package com.vm.nornir.launcher.icon
 
 import android.content.ComponentName
 import android.graphics.drawable.Drawable
-import android.os.Looper
 import android.os.UserHandle
 import android.util.LruCache
 import com.vm.nornir.launcher.model.AppItem
@@ -43,7 +42,7 @@ class LruIconCache(
     }
 
     override fun get(component: ComponentName, user: UserHandle, density: Int): Drawable? {
-        checkNotMainThread()
+        enforceOffMainThread()
         return cache.get(IconKey(component, user, density))
     }
 
@@ -61,15 +60,6 @@ class LruIconCache(
     /** Number of live entries (diagnostics/tests). */
     val entryCount: Int
         get() = cache.size()
-
-    private fun checkNotMainThread() {
-        if (Looper.myLooper() == Looper.getMainLooper() && !RealIconLoader.ALLOW_MAIN_THREAD_FOR_TESTS) {
-            throw IllegalStateException(
-                "IconLoader.get must be called off the main thread (ADR-0003 §4); " +
-                    "cross-APK icon inflation janks the frame.",
-            )
-        }
-    }
 
     /** Identity for one cached drawable: full catalog identity + target density. */
     private data class IconKey(

@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
-import android.os.Looper
 import android.os.UserHandle
 
 /**
@@ -31,7 +30,7 @@ class RealIconLoader(
 ) : IconLoader {
 
     override fun get(component: ComponentName, user: UserHandle, density: Int): Drawable? {
-        checkNotMainThread()
+        enforceOffMainThread()
         val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return null
         return try {
             launcherApps.getActivityList(component.packageName, user)
@@ -44,14 +43,6 @@ class RealIconLoader(
         }
     }
 
-    private fun checkNotMainThread() {
-        if (Looper.myLooper() == Looper.getMainLooper() && !ALLOW_MAIN_THREAD_FOR_TESTS) {
-            throw IllegalStateException(
-                "IconLoader.get must be called off the main thread (ADR-0003 §4); " +
-                    "cross-APK icon inflation janks the frame.",
-            )
-        }
-    }
 
     internal companion object {
         /**
