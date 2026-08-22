@@ -145,6 +145,11 @@ interface FrequentSource {                                  // read seam (D6), c
 }
 ```
 
+> **Implementation note (realized in #15, merged #24 `9e362a2`).** The D6 "Map<String, UsageRecord>" preference is realized on a **Preferences** DataStore, not Protobuf: the toolchain carries only `androidx-datastore-preferences` (no protobuf codegen), and issue #15's "Proto/DataStore" wording is satisfied as the same logical shape via a stable `"count;timestamp"` text encoding per string key — keeping `NornirUsageStore`/`FavoritesSource` interfaces unchanged so a later Proto/Room swap stays non-breaking (D2 upgrade path).
+> - `NornirUsageStore` is keyed by the D6 identity string `usage/<component.flattenToString()>#<user>`. D6's literal `user.serialize()` is an `@hide` API (not callable from app code — it is absent from the public SDK stubs); the key uses `UserHandle.toString()`, which renders the unique per-user handle id (`UserHandle{10}`), as the public-API equivalent.
+> - `FavoritesSource` persists the pin set as `booleanPreferencesKey("fav/<component.flattenToString()>")` entries, exposing `addFavorite`/`removeFavorite` over a `StateFlow<Set<ComponentName>>`.
+> - Tests run the **real** implementations over an in-memory `PreferenceDataStoreFactory` DataStore (issue #11's primary-seam strategy), exercising the production serialize/edit/read-back path with no device.
+
 ## Consequences
 
 - The usage overlay now has a complete, coherent plan: self-tracked (private, permission-free), aggregate counters keyed on catalog identity, top-N-by-count definition, Favorites kept separate, quiet reorder in `All`/category filters only, and a `DataStore` store reconciled on package removal.
