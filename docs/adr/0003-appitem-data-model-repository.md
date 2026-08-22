@@ -148,6 +148,18 @@ interface IconLoader {
 - **Returns the raw `Drawable`.** The Compose `Painter` conversion (`toBitmap().asImageBitmap()` vs an
   image-loading library) is #7's call (T2 §5.5 leaves Compose interop to the UI ticket).
 
+> **Implementation note (realized in #16, merged #26 `aa056e9`).** The seam ships as three types in
+> `com.vm.nornir.launcher.icon`: `IconLoader` (the interface above; returns `Drawable?` — `null` on
+> unresolvable identity rather than throwing, mirroring the `RealLauncherInvoker` failure contract),
+> `LruIconCache` (the production `IconLoader`: an `android.util.LruCache` decorator keyed by
+> `(component, user, density)`, default 512 entries, `trimMemory()` for the host activity's
+> `onTrimMemory`, nulls never negatively cached), and `RealIconLoader` (the
+> `LauncherActivityInfo.getBadgedIcon(density)` backing source). The off-main rule is enforced by one
+> shared guard (`IconGuard.enforceOffMainThread`) throwing `IllegalStateException` on the main thread;
+> JVM tests opt out via `RealIconLoader.ALLOW_MAIN_THREAD_FOR_TESTS` because Robolectric runs each test
+> on its own main thread. Tests use `FakeIconLoader`/`CountingIconSource` fakes (no device); the live
+> badged-icon fetch is signed off on-device per ADR-0007.
+
 ### 5. Boundaries with #7 (UI) and #9 (usage/persistence)
 
 - **#6 stays a pure spine.** It exposes only: the `AppItem` catalog, `apps: StateFlow`, and `IconLoader`.
