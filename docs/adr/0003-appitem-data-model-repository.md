@@ -96,6 +96,25 @@ interface AppRepository {
   (a device is required to call `LauncherApps`).
 - **No filtering, no usage join.** The repo is pure spine: it returns typed catalog data only (see §4–§5).
 
+> **Implementation note (realized in #17, merged #28 `17e2723`).** The seam ships as three types in
+> `com.vm.nornir.launcher.catalog`: `AppRepository` (the interface above, plus `close()` for explicit
+> teardown), `RealAppRepository` (production: `context.getSystemService(LauncherApps)`; enumeration
+> walks `launcherApps.profiles` → `getActivityList(null, user)` exactly as §3 sketches), and
+> `FakeAppRepository` (test sourceset: a synchronous in-memory list behind the same `StateFlow`, with
+> `setApps/add/remove/clear/reset` + `loadCount` recording — synchronous because a fake must stay
+> deterministic under a test scheduler). Live maintenance uses a `LauncherApps.Callback` (registered on
+> the main `Handler`; each event re-dispatches `load()` onto the injected `CoroutineDispatcher`) **plus**
+> an `ACTION_MANAGED_PROFILE_ADDED/_REMOVED` receiver — the callback does not fire when a managed profile
+> itself appears/disappears. Self-exclusion follows §3 verbatim (`(host home ComponentName,
+> Process.myUserHandle())`, never a packageName drop — a work-profile clone of the launcher package stays
+> listed). Category retrieval per the §3 note: `LauncherActivityInfo.getApplicationInfo()` on API 29+
+> (`VERSION_CODES.Q`), `packageManager.getApplicationInfo(pkg, 0)` below. When `LauncherApps` is unbound
+> the repo falls back to a `PackageManager` `MAIN`/`LAUNCHER` query for the calling user (manifest
+> `<queries>` block; no `QUERY_ALL_PACKAGES`). JVM tests drive the shadow `LauncherApps`
+> (`addActivity`/`notifyPackageAdded`) on Robolectric with main-Looper idling; the internal
+> `LauncherActivityInfoInternal` constructor is hidden from the compile stub and is reached via
+> reflection inside the sandbox.
+
 ### 3. Enumeration & self-exclusion (T2 §5.2 + #6 Q5)
 
 ```kotlin
