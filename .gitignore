@@ -43,3 +43,6 @@ captures/
 # Agent-local scratch (Gradle home, Robolectric test home, review dumps)
 .gradle-home/
 .prime/
+.robo-home/
+.tmptmp/
+.buildlog*.txt

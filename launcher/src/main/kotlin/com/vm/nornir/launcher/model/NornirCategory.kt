@@ -12,13 +12,13 @@ package com.vm.nornir.launcher.model
  * [ALL] and [FAVORITES] are intentionally NOT members — they live on a separate
  * `FilterMode` axis (ADR-0002 §4).
  */
-enum class NornirCategory {
-    GAME,
-    MULTIMEDIA,
-    SOCIAL,
-    NEWS,
-    PRODUCTIVITY,
-    MAPS,
-    ACCESSIBILITY,
-    OTHER,
+enum class NornirCategory(val displayName: String) {
+    GAME("Games"),
+    MULTIMEDIA("Multimedia"),
+    SOCIAL("Social"),
+    NEWS("News"),
+    PRODUCTIVITY("Productivity"),
+    MAPS("Maps"),
+    ACCESSIBILITY("Accessibility"),
+    OTHER("Other"),
 }

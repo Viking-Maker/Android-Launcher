@@ -55,9 +55,13 @@ dependencies {
     implementation(libs.androidx.material3)
     // ADR-0006 D6: usage + favorites persistence rides the DataStore pattern.
     implementation(libs.androidx.datastore.preferences)
+    // ADR-0004 §1: the activity-scoped LauncherViewModel (ViewModel + viewModelScope).
+    implementation(libs.androidx.lifecycle.viewmodel)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Issue #18: primary seam tests assert on uiState via Turbine.
+    testImplementation(libs.turbine)
 }
