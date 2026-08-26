@@ -72,6 +72,16 @@ dependencies {
     // semantics matchers, KeyEvents) — same sourceset as the rest of the suite.
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
+    // ui-test-manifest contributes the ComponentActivity declaration that
+    // createComposeRule() launches. Its manifest must merge into EVERY unit-test
+    // variant, and only the variant-matching configuration does that —
+    // debugImplementation alone leaves the release unit-test APK without the activity
+    // ("Unable to resolve activity ... cmp=androidx.activity.ComponentActivity"), failing
+    // every compose UI test under the ADR-0001 `gradlew test` contract. Keep both.
     debugImplementation(libs.androidx.ui.test.manifest)
+    releaseImplementation(libs.androidx.ui.test.manifest)
+    // ui-tooling backs @Preview rendering in the IDE; its PreviewActivity is likewise
+    // merged per-variant by the same mechanism.
+    debugImplementation(libs.androidx.ui.tooling)
+    releaseImplementation(libs.androidx.ui.tooling)
 }
