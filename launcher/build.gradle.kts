@@ -53,11 +53,25 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // ADR-0004 §1/§7: lifecycle-aware StateFlow collection in composables.
+    implementation(libs.androidx.lifecycle.runtime.compose)
     // ADR-0006 D6: usage + favorites persistence rides the DataStore pattern.
     implementation(libs.androidx.datastore.preferences)
+    // ADR-0004 §1: the activity-scoped LauncherViewModel (ViewModel + viewModelScope).
+    implementation(libs.androidx.lifecycle.viewmodel)
+    // ADR-0004 §7: Drawable -> Painter interop so AppIcon can paint the IconLoader seam.
+    implementation(libs.accompanist.drawablepainter)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Issue #18: primary seam tests assert on uiState via Turbine.
+    testImplementation(libs.turbine)
+    // Issue #19: Compose UI tests run on the JVM under Robolectric (createComposeRule,
+    // semantics matchers, KeyEvents) — same sourceset as the rest of the suite.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }

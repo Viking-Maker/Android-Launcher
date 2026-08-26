@@ -9,8 +9,18 @@ androidxTestCore = "1.7.0"
 robolectric = "4.16.1"
 dataStore = "1.1.7"
 coroutines = "1.10.2"
+lifecycle = "2.8.7"
+turbine = "1.2.0"
+# Issue #19: Drawable -> Painter interop for the icon seam (AppIcon); the only
+# Accompanist artifact we take, pinned latest stable (0.37.x line, Compose 1.8-compatible).
+accompanist = "0.37.3"
 
 [libraries]
+# Issue #19: Compose UI tests (createAndroidComposeRule/createComposeRule + semantics) ride the BOM.
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+# ADR-0004 §1: collectAsStateWithLifecycle for the uiState StateFlow in composables.
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
@@ -18,10 +28,14 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

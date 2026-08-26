@@ -25,12 +25,19 @@ either bundle curated category maps (Neo "Flowerpot") or skip category filtering
 Model category with **Nornir's own sealed type**, a hybrid derivation:
 
 ```kotlin
-enum class NornirCategory { GAME, MULTIMEDIA, SOCIAL, NEWS, PRODUCTIVITY, MAPS, ACCESSIBILITY, OTHER }
+enum class NornirCategory(val displayName: String) {
+    GAME("Games"), MULTIMEDIA("Multimedia"), SOCIAL("Social"), NEWS("News"),
+    PRODUCTIVITY("Productivity"), MAPS("Maps"), ACCESSIBILITY("Accessibility"), OTHER("Other"),
+}
 ```
 
 - `MULTIMEDIA` groups platform `CATEGORY_AUDIO | CATEGORY_VIDEO | CATEGORY_IMAGE` into one chip.
 - `OTHER` is the fallback for `CATEGORY_UNDEFINED` / unmapped.
 - `ACCESSIBILITY` (`CATEGORY_ACCESSIBILITY`, API 31+) is offered only on API 31+ devices.
+- **`displayName`** (added with #18): the human-readable label each category matches by in the
+  search path (ADR-0004 §8 — "games" finds game apps). It lives on the enum so the query
+  matcher needs no separate mapping table; it is not itself a UI string contract — chips may
+  render their own copy.
 
 `AppItem.category: NornirCategory` is derived per-app in this order:
 1. **User override** (persisted, data-model-only — see below).

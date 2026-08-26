@@ -4,11 +4,13 @@
     <!-- GREEN: Nornir is device-default-home-capable and never self-lists in the drawer.
          - MainActivity: exported, MAIN + HOME + DEFAULT only (no LAUNCHER)
          - launchMode=singleTask, clearTaskOnLaunch, stateNotNeeded, adjustResize
-         - separate <queries> MAIN/LAUNCHER block for package visibility (no QUERY_ALL_PACKAGES) -->
+         - separate <queries> MAIN/LAUNCHER block for package visibility (no QUERY_ALL_PACKAGES)
+         - NornirHomeTheme shows the live wallpaper behind the glass card (launcher-UI.md §1) -->
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:theme="@style/NornirHomeTheme">
 
         <activity
             android:name=".MainActivity"
