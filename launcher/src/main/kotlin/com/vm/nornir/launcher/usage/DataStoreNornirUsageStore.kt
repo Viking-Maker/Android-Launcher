@@ -90,7 +90,7 @@ class DataStoreNornirUsageStore(
 
     companion object {
         /** Key prefix namespaces usage entries away from any other DataStore user.
-         *  Public so the read-only [DataStoreFrequentSource] can select the same namespace. */
+         *  Public so the read-only [UsageBackedFrequentSource] can select the same namespace. */
         const val PREFIX_PUBLIC = "usage/"
 
         /**
