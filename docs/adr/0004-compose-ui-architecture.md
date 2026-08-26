@@ -251,3 +251,29 @@ scaffold compiles.
 - **Does not** write app code (per #1 plan-only). **Does not** decide launch mechanics (#8) or the usage
   store (#9) — it only fixes the interfaces those tickets implement. **Does not** add the `>` command mode
   (out of scope per #1).
+
+> **Implementation note (realized in #18/#19, merged #30 `cf3e441`, #32 `ec92850`).** The architecture ships as
+> `com.vm.nornir.launcher.ui`: `LauncherViewModel` (activity-scoped; `uiState` =
+> `combine(repo.apps, favorites.favorites, query, filter, focusedIndex)` via `stateIn(WhileSubscribed(5000))`),
+> the immutable `LauncherUiState` (+ `FilterMode{All, Favorites, Category}`), and pure `filterApps` /
+> `visibleCategories` / `step` in `LauncherFiltering.kt`. Realized deltas from the sketches above:
+> - **Fuzzy match (§8):** subsequence ‖ Levenshtein ≤ `max(1, len/4)` over accent/case-folded (NFD,
+>   combining-marks-stripped) label or category `displayName`; `packageName` never searched.
+>   `NornirCategory.displayName` (ADR-0002 note) lets "games" find game apps. The §8 example pair
+>   `"spoitfy" → "Spotify"` is distance 2 under this rule — pinned by test as rejected; reconciliation in #31.
+> - **Launch + usage:** `Launch` delegates to `LauncherInvoker` then records usage VM-side (per #18's AC),
+>   superseding ADR-0006 D6's invoker-side placement until #31 reconciles success-conditionality.
+> - **Keyboard routing (§3):** Up/Down/Enter are intercepted once at card level via `onPreviewKeyEvent`
+>   (`handleKeyEvent`) instead of per-list focus moves, so they work wherever focus sits; `focusedIndex`
+>   stays in state and is clamped both in `step()` and in the `combine`.
+> - **Component tree (§9):** `LauncherScreen → SearchBar/CategoryBar/AppList(AppCard)/Footer` as decided, with
+>   `AppIcon` at the presentation boundary loading through `IconLoader` via `produceState` +
+>   `Dispatchers.IO` + `rememberDrawablePainter` (density-keyed; placeholder while loading/null).
+> - **Wallpaper backing:** `NornirHomeTheme` (`android:windowShowWallpaper=true`, transparent system bars)
+>   composites the glass card over the live wallpaper; window fill `#161623`/`#252538` per ADR-0007 pending
+>   on-device contrast check (#20).
+> - **Previews/tests (§10):** `@Preview`s over `LauncherUiStateProvider` fake states + Robolectric compose
+>   tests (`LauncherScreenTest`) driving rendering, autofocus, key routing, Enter-launch and chip events;
+>   Paparazzi not yet adopted. Compose UI tests require `ui-test-manifest` merged into **every** unit-test
+>   variant (debug **and** release) — a debug-only declaration silently breaks `gradlew test`'s release leg.
+
