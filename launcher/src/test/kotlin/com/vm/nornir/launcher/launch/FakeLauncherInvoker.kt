@@ -37,14 +37,9 @@ class FakeLauncherInvoker(
         return component !in failingComponents && component !in dynamicFailures
     }
 
-    /** Make every subsequent launch of [component] report failure until [succeedAgain]. */
+    /** Make every subsequent launch of [component] report failure (until the fake is reset). */
     fun failNextFor(component: ComponentName) {
         dynamicFailures += component
-    }
-
-    /** Clear a one-off failure injected with [failNextFor]. */
-    fun succeedAgain(component: ComponentName) {
-        dynamicFailures -= component
     }
 
     /** Convenience: the most recent launch, or `null` if none has happened yet. */

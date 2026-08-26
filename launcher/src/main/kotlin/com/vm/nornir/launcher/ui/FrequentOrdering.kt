@@ -29,11 +29,13 @@ fun frequentTopN(
     n: Int = FREQUENT_TOP_N,
 ): Set<ComponentName> =
     apps.asSequence()
-        .mapNotNull { app -> usage[app.component]?.takeIf { it.hasLaunches }?.let { app.component to it } }
-        .sortedWith(compareByDescending<Pair<ComponentName, UsageRecord>> { it.second.launchCount }
-            .thenByDescending { it.second.lastLaunchTimestamp })
+        .filter { usage[it.component]?.hasLaunches == true } // zero/missing records never qualify
+        .sortedWith(
+            compareByDescending<AppItem> { usage[it.component]?.launchCount ?: 0 }
+                .thenByDescending { usage[it.component]?.lastLaunchTimestamp ?: Long.MIN_VALUE },
+        )
         .take(n)
-        .map { it.first }
+        .map { it.component }
         .toSet()
 
 /**
@@ -41,14 +43,20 @@ fun frequentTopN(
  * then the remaining matches alphabetically. Favorites mode is excluded upstream —
  * pinned membership alone decides that slice (D5).
  */
+private val LABEL_ORDER: java.text.Collator = java.text.Collator.getInstance()
+
+/** Rank key for one app's usage evidence: count DESC, then recency DESC. */
+private fun evidenceRank(usage: Map<ComponentName, UsageRecord>, component: ComponentName): Pair<Int, Long> =
+    usage[component]?.let { it.launchCount to it.lastLaunchTimestamp } ?: (0 to Long.MIN_VALUE)
+
 fun orderFrequentFirst(
     apps: List<AppItem>,
     frequent: Set<ComponentName>,
     usage: Map<ComponentName, UsageRecord>,
 ): List<AppItem> {
     val rank = compareByDescending<AppItem> { it.component in frequent }
-        .thenByDescending { usage[it.component]?.launchCount ?: 0 }
-        .thenByDescending { usage[it.component]?.lastLaunchTimestamp ?: Long.MIN_VALUE }
-        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.rawLabel }
+        .thenByDescending { evidenceRank(usage, it.component).first }
+        .thenByDescending { evidenceRank(usage, it.component).second }
+        .then { a, b -> LABEL_ORDER.compare(a.rawLabel, b.rawLabel) } // D5: locale-aware labels
     return apps.sortedWith(rank)
 }
