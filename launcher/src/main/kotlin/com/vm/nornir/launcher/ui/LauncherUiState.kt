@@ -26,7 +26,7 @@ sealed interface FilterMode {
  * @property results the filtered catalog slice.
  * @property availableCategories categories with ≥ 1 member — empty ones hidden (ADR-0002).
  * @property focusedIndex highlight position, always inside [results] bounds (0 when empty).
- * @property hasFavorites drives Pin-chip visibility (shown iff any pin exists).
+ * @property hasFavorites reports whether any pin exists — reserved for #20's Favorites surface.
  */
 data class LauncherUiState(
     val query: String = "",

@@ -87,3 +87,17 @@ private fun AppCardFocusedPreview() {
         AppCard(item = item, isFocused = true, iconLoader = PlaceholderIconLoader, onClick = {})
     }
 }
+
+@Preview(name = "AppCard — resting", showBackground = true)
+@Composable
+private fun AppCardRestingPreview() {
+    val item = AppItem(
+        ComponentName("com.example.vscode", "com.example.vscode.MainActivity"),
+        Process.myUserHandle(),
+        "VS Code",
+        7,
+    )
+    NornirTheme {
+        AppCard(item = item, isFocused = false, iconLoader = PlaceholderIconLoader, onClick = {})
+    }
+}

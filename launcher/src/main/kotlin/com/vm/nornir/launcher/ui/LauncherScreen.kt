@@ -84,7 +84,6 @@ fun LauncherScreen(
             CategoryBar(
                 availableCategories = state.availableCategories,
                 filter = state.filter,
-                hasFavorites = state.hasFavorites,
                 onFilterSelected = { onEvent(LauncherEvent.FilterSelected(it)) },
                 modifier = Modifier
                     .fillMaxWidth()

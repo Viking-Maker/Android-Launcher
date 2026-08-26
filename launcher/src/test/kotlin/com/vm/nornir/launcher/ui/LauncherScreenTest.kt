@@ -8,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -30,8 +29,10 @@ import org.robolectric.annotation.Config
  * The screen is driven exactly as production will: an immutable [LauncherUiState] in,
  * [LauncherEvent]s out through a recording sink. Per #11's testing strategy these tests
  * read **external behavior** — rendered text/semantics and the event sequence — never
- * composables' internals. Keyboard interaction goes through real KeyEvents
- * (`performKeyPress`), so the Up/Down/Enter contract is exercised end-to-end at this level.
+ * composables' internals. Keyboard tests drive real composed KeyEvents through the screen's
+ * router ([handleKeyEvent]) directly: Robolectric's window-level key injection is not
+ * deterministic, so composition-level key dispatch is verified on-device (#20), while the
+ * Up/Down/Enter routing contract is pinned here at unit level.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -105,11 +106,12 @@ class LauncherScreenTest {
     }
 
     @Test
-    fun emptyCategoriesAreHidden_andFavoritesChipHiddenWithoutPins() {
+    fun emptyCategoriesAreHidden_andFilterChipsNeverHidden() {
         val mail = app("mail", "Mail")
         val sink = EventSink()
         setState(LauncherUiState(results = listOf(mail), availableCategories = listOf(NornirCategory.OTHER)), sink)
-        compose.onNodeWithText("Favorites").assertDoesNotExist() // hasFavorites=false
+        compose.onNodeWithText("Favorites").assertExists()       // never hidden — ADR-0002 §4
+        compose.onNodeWithText("All").assertExists()
         compose.onNodeWithText("Games").assertDoesNotExist()     // empty category hidden upstream
         compose.onNodeWithContentDescription("Mail, Other, focused").assertExists() // row 0 is focused
         compose.onNodeWithText("Other").assertExists()

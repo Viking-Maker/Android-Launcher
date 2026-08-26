@@ -27,10 +27,10 @@ import com.vm.nornir.launcher.model.NornirCategory
 /**
  * The horizontal category filter bar (`launcher-UI.md` §4, ADR-0002 §4).
  *
- * Chip order follows the spec's left-to-right set: the two always-shown filter-axis
+ * Chip order follows the spec's left-to-right set: the two **never-hidden** filter-axis
  * chips (`Favorites`, `All`), then one chip per [availableCategories] in taxonomy order.
  * Empty categories never reach this composable — `visibleCategories()` hides them — and
- * the Favorites pin is additionally suppressed when nothing is pinned ([hasFavorites]).
+ * the two filter-axis chips render unconditionally, per ADR-0002 §4.
  *
  * Selected state: solid lavender pill with dark text (spec §4); unselected: dark
  * elevated surface with muted text. Pure and previewable.
@@ -39,7 +39,6 @@ import com.vm.nornir.launcher.model.NornirCategory
 fun CategoryBar(
     availableCategories: List<NornirCategory>,
     filter: FilterMode,
-    hasFavorites: Boolean,
     onFilterSelected: (FilterMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -50,13 +49,11 @@ fun CategoryBar(
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (hasFavorites) {
-            FilterChip(
-                label = "Favorites",
-                selected = filter is FilterMode.Favorites,
-                onClick = { onFilterSelected(FilterMode.Favorites) },
-            )
-        }
+        FilterChip(
+            label = "Favorites", // never hidden — ADR-0002 §4 (a toggle, not a category)
+            selected = filter is FilterMode.Favorites,
+            onClick = { onFilterSelected(FilterMode.Favorites) },
+        )
         FilterChip(
             label = "All",
             selected = filter is FilterMode.All,

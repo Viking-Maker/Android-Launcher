@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Home-window theme (issue #19, launcher-UI.md §1 "floating card over the wallpaper").
+
+      `windowShowWallpaper=true` is the standard home-role mechanism (Launcher3 uses the
+      same flag): the window renders the live wallpaper behind its content, so the
+      translucent glass card composites over the user's wallpaper instead of an opaque
+      activity background. The framework `Theme.Material.NoActionBar` parent keeps the
+      view-level chrome out without pulling an extra appcompat dependency — all real
+      theming is Compose-side (NornirTheme / ADR-0004 §6).
+    -->
+    <style name="NornirHomeTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
