@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.vm.nornir.launcher.catalog.AppRepository
 import com.vm.nornir.launcher.favorites.FavoritesSource
 import com.vm.nornir.launcher.launch.LauncherInvoker
+import android.content.ComponentName
 import com.vm.nornir.launcher.model.AppItem
+import com.vm.nornir.launcher.usage.FrequentSource
 import com.vm.nornir.launcher.usage.NornirUsageStore
+import com.vm.nornir.launcher.usage.UsageRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +38,7 @@ import kotlinx.coroutines.flow.stateIn
 class LauncherViewModel(
     private val repo: AppRepository,
     favorites: FavoritesSource,
+    frequent: FrequentSource,
     private val launcher: LauncherInvoker,
     private val usage: NornirUsageStore,
 ) : ViewModel() {
@@ -43,10 +47,17 @@ class LauncherViewModel(
     private val _filter = MutableStateFlow<FilterMode>(FilterMode.All)
     private val _focusedIndex = MutableStateFlow(0)
 
+    @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<LauncherUiState> =
-        combine(repo.apps, favorites.favorites, _query, _filter, _focusedIndex) {
-            apps, favSet, query, filter, focus ->
-            val results = filterApps(apps, query, filter, favSet) // pure (Q4-a, Q8-fuzzy)
+        combine(repo.apps, favorites.favorites, frequent.frequent, usage.records(), _query, _filter, _focusedIndex) { values ->
+            val apps = values[0] as List<AppItem>
+            val favSet = values[1] as Set<ComponentName>
+            val freqSet = values[2] as Set<ComponentName>
+            val usageMap = values[3] as Map<ComponentName, UsageRecord>
+            val query = values[4] as String
+            val filter = values[5] as FilterMode
+            val focus = values[6] as Int
+            val results = filterApps(apps, query, filter, favSet, freqSet, usageMap) // pure (Q4-a, Q8-fuzzy + ADR-0006 D5)
             LauncherUiState(
                 query = query,
                 filter = filter,
@@ -81,18 +92,20 @@ class LauncherViewModel(
 
     companion object {
         /**
-         * Factory binding the four seams (ADR-0004 §1). The MVP has no DI framework —
-         * #20 owns the production graph — so the activity constructs this directly.
+         * Factory binding the five seams (ADR-0004 §1 + ADR-0006 D6's companion read seam).
+         * The MVP has no DI framework — #20 owns the production graph — so the activity
+         * constructs this directly.
          */
         fun factory(
             repo: AppRepository,
             favorites: FavoritesSource,
+            frequent: FrequentSource,
             launcher: LauncherInvoker,
             usage: NornirUsageStore,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                LauncherViewModel(repo, favorites, launcher, usage) as T
+                LauncherViewModel(repo, favorites, frequent, launcher, usage) as T
         }
     }
 }
