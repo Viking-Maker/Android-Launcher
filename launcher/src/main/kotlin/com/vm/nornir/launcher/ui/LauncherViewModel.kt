@@ -1,6 +1,7 @@
 package com.vm.nornir.launcher.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.vm.nornir.launcher.catalog.AppRepository
 import com.vm.nornir.launcher.favorites.FavoritesSource
@@ -72,4 +73,21 @@ class LauncherViewModel(
     /** The item under the mint highlight, or `null` when the grid is empty. */
     fun focusedItem(): AppItem? =
         uiState.value.results.getOrNull(uiState.value.focusedIndex)
+
+    companion object {
+        /**
+         * Factory binding the four seams (ADR-0004 §1). The MVP has no DI framework —
+         * #20 owns the production graph — so the activity constructs this directly.
+         */
+        fun factory(
+            repo: AppRepository,
+            favorites: FavoritesSource,
+            launcher: LauncherInvoker,
+            usage: NornirUsageStore,
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                LauncherViewModel(repo, favorites, launcher, usage) as T
+        }
+    }
 }
