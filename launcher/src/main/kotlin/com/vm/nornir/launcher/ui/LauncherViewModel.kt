@@ -23,16 +23,14 @@ import kotlinx.coroutines.flow.stateIn
  * catalog stream + keyboard focus live off-composition.
  *
  * Launch wiring (#8/#9 seams): [LauncherEvent.Launch] delegates the start to
- * [LauncherInvoker] — a pure side effect, no state change — and records the deliberate
- * launch through [NornirUsageStore]. Per issue #18's AC the write lives here (VM-side),
- * which supersedes ADR-0006 D6's original invoker-side placement; reconciling that
- * contract (success-conditionality, KDoc ownership) is tracked in #31.
+ * [LauncherInvoker] and records the deliberate launch through [NornirUsageStore] **only
+ * when the launch started** ([LauncherInvoker.launch] returned `true` — resolved by #31:
+ * VM-side write point per issue #18's AC, success-conditional per ADR-0006 D6).
  *
  * @param repo the catalog source (#6 seam).
  * @param favorites the pin-set source (#9 seam); only its `favorites` StateFlow is read.
  * @param launcher the launch seam (#8) — side-effect only.
- * @param usage the self-tracked usage store; incremented on every launch attempt (see #31
- *   for the success-conditionality follow-up).
+ * @param usage the self-tracked usage store; incremented on each successful launch.
  */
 class LauncherViewModel(
     private val repo: AppRepository,
@@ -60,13 +58,20 @@ class LauncherViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LauncherUiState())
 
     /** The unidirectional entry point — the only way the UI mutates state. */
-    fun handle(event: LauncherEvent) = when (event) {
-        is LauncherEvent.QueryChanged -> _query.value = event.text
-        is LauncherEvent.FilterSelected -> _filter.value = event.filter
-        is LauncherEvent.MoveFocus -> _focusedIndex.value = step(_focusedIndex.value, event.dir, uiState.value.results.size)
-        is LauncherEvent.Launch -> {
-            launcher.launch(event.item) // side effect — no state change
-            usage.recordLaunch(event.item.component, event.item.user)
+    fun handle(event: LauncherEvent) {
+        when (event) {
+            is LauncherEvent.QueryChanged -> _query.value = event.text
+            is LauncherEvent.FilterSelected -> _filter.value = event.filter
+            is LauncherEvent.MoveFocus -> _focusedIndex.value = step(_focusedIndex.value, event.dir, uiState.value.results.size)
+            is LauncherEvent.Launch -> {
+                // Side effect + conditional instrumentation (#31 Finding 1): only a launch
+                // the invoker actually started counts toward the frequent ranking
+                // (ADR-0006 D6's "each successful launch"); stale entries leave no trace.
+                val started = launcher.launch(event.item)
+                if (started) {
+                    usage.recordLaunch(event.item.component, event.item.user)
+                }
+            }
         }
     }
 

@@ -26,19 +26,21 @@ class RealLauncherInvoker(
     private val context: Context,
 ) : LauncherInvoker {
 
-    override fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions?) {
-        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return
-        try {
+    override fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions?): Boolean {
+        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return false
+        return try {
             // item.component / item.user come straight from LauncherActivityInfo (ADR-0003
             // identity). ActivityOptions.toBundle() carries the launch animation; null if none.
             launcherApps.startMainActivity(component, user, null, options?.toBundle())
+            true
         } catch (_: android.content.ActivityNotFoundException) {
-            // Activity disabled/uninstalled between enumeration and tap.
+            false // Activity disabled/uninstalled between enumeration and tap.
         } catch (_: SecurityException) {
-            // Profile/user no longer accessible.
+            false // Profile/user no longer accessible.
         } catch (_: NullPointerException) {
-            // LauncherApps binder unbound.
+            false // LauncherApps binder unbound.
         }
-        // On any failure: do nothing visible — the launcher stays up (ADR-0005 §2).
+        // On any failure: do nothing visible — the launcher stays up (ADR-0005 §2) — and the
+        // `false` return tells the caller not to record usage (#31 Finding 1).
     }
 }

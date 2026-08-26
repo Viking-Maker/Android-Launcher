@@ -49,13 +49,26 @@ class LauncherInvokerTest {
         val component = ComponentName("com.example", "com.example.Main")
         val fake = FakeLauncherInvoker()
 
-        fake.launch(component, personalUser)
+        val started = fake.launch(component, personalUser)
 
+        assertTrue(started) // default: the launch succeeds
         assertEquals(1, fake.launchCount)
         val record = fake.lastLaunch
         assertEquals(component, record?.component)
         assertEquals(personalUser, record?.user)
         assertNull(record?.options) // no options supplied -> null
+    }
+
+    @Test
+    fun fakeReportsFailureForInjectedFailingComponent() {
+        // Issue #31 Finding 1: the seam reports whether the launch actually started so the
+        // caller can conditionally record usage. The fake injects failure per component.
+        val component = ComponentName("com.example.stale", "com.example.stale.Main")
+        val fake = FakeLauncherInvoker(failingComponents = setOf(component))
+
+        assertFalse(fake.launch(component, personalUser))
+        assertFalse(fake.launch(item(component, personalUser))) // AppItem overload too
+        assertEquals(2, fake.launchCount) // attempts are still recorded
     }
 
     @Test

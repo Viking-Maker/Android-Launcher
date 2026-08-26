@@ -12,10 +12,11 @@ import android.os.UserHandle
  * (D1: Nornir is the HOME launcher, so its own launch seam is the dominant share of
  * deliberate launches, permission-free and fully local).
  *
- * The single write point is the launch flow: `LauncherInvoker.launchApp` calls
- * [recordLaunch] on each successful Nornir launch (D6). Reads feed the D3/D5
- * frequent-first ordering; `FrequentSource` (companion read seam) computes the top-N
- * on top of this store.
+ * Write point: `LauncherViewModel` calls [recordLaunch] on each launch that
+ * [com.vm.nornir.launcher.launch.LauncherInvoker] reports as started — VM-side per issue
+ * #18's AC, success-conditional per D6 (resolved by #31; a failed launch leaves no trace).
+ * Reads feed the D3/D5 frequent-first ordering; `FrequentSource` (companion read seam)
+ * computes the top-N on top of this store.
  */
 interface NornirUsageStore {
 

@@ -27,12 +27,17 @@ interface LauncherInvoker {
      * @param user the profile owning the app — must be the same handle the catalog
      *   returned, so a work-profile app opens in the work profile.
      * @param options optional [ActivityOptions] for the launch animation; `null` if none.
+     * @return `true` when the launch was handed to the system (started), `false` when it
+     *   could not be performed — unbound `LauncherApps`, or a stale/disabled/uninstalled
+     *   entry / inaccessible profile caught by the implementation. Issue #31 Finding 1:
+     *   this is the success signal the caller uses to decide whether to record usage, so
+     *   failed launches never inflate the frequent ranking (ADR-0006 D6).
      */
-    fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions? = null)
+    fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions? = null): Boolean
 
     /**
      * Convenience overload: launch the exact identity carried by an [AppItem].
      * Delegates to [launch] with [AppItem.component] / [AppItem.user] (ADR-0005 §2).
      */
-    fun launch(app: AppItem) = launch(app.component, app.user)
+    fun launch(app: AppItem): Boolean = launch(app.component, app.user)
 }

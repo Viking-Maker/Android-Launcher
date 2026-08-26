@@ -131,6 +131,14 @@ private fun orderFrequentFirst(
 
 - **Store:** reuse ADR-0003's `DataStore` pattern. A `[component#user -> UsageRecord]` map (serialized as a `Map<String, UsageRecord>` preference; the key string is `component.flattenToString() + "#" + user.serialize()`), including `UserHandle` so multi-profile is correct by construction.
 - **Write path:** `NornirUsageStore.recordLaunch(component, user)` is invoked from `LauncherInvoker.launchApp(item)` (ADR-0005) on each successful Nornir launch — increment `launchCount`, set `lastLaunchTimestamp = now`. This is the single instrumentation point (D1).
+
+> **Implementation note (reconciled in #31, merged via the #33 follow-up line).** The D6 "successful launch" write
+> lives in `LauncherViewModel.handle(Launch)` (issue #18's AC prescribes VM-side wiring): it calls
+> `LauncherInvoker.launch(item)` — which now returns `true` only when the system actually started the activity
+> (unbound `LauncherApps` / stale entry / inaccessible profile all return `false`) — and records through
+> `NornirUsageStore.recordLaunch` **only on success**. Net behavior matches this bullet's intent ("each successful
+> Nornir launch"); failed launches never inflate the frequent ranking. The interface names differ from the sketch
+> (`launchApp` → `launch`); the single-instrumentation-point property (D1) is unchanged.
 - **Read path:** `interface FrequentSource { val frequent: StateFlow<Set<ComponentName>> }` computes the D3 top-N from `NornirUsageStore` (recomputed on `repo.apps` change and on each `recordLaunch`). This is the companion seam to ADR-0004's `FavoritesSource`.
 - **Reconcile / prune:** on `LauncherApps.Callback` `onPackageRemoved` / `onPackagesUnavailable` (already wired in ADR-0003 for the catalog `StateFlow`), delete the matching key(s) from the usage map; ignore any stored key whose identity no longer appears in `repo.apps` (defensive on read). This prevents orphan counters and keeps usage in lockstep with the live catalog.
 
