@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.os.UserHandle
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Test fake for [NornirUsageStore] (issue #15).
@@ -20,6 +21,8 @@ class FakeNornirUsageStore(dataStore: DataStore<Preferences>) : NornirUsageStore
 
     override fun usageFor(component: ComponentName, user: UserHandle): UsageRecord =
         delegate.usageFor(component, user)
+
+    override fun records(): Flow<Map<ComponentName, UsageRecord>> = delegate.records()
 
     /** Release the delegate's private IO thread. */
     fun close() = delegate.close()

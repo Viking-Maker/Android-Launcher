@@ -2,6 +2,7 @@ package com.vm.nornir.launcher.ui
 
 import android.content.ComponentName
 import com.vm.nornir.launcher.model.AppItem
+import com.vm.nornir.launcher.usage.UsageRecord
 import com.vm.nornir.launcher.model.NornirCategory
 import java.text.Normalizer
 import kotlin.math.max
@@ -19,19 +20,31 @@ import kotlin.math.max
  * A row survives when it passes the chip test ([passesFilterMode]) **and** either the query
  * is empty or it fuzzily matches the label or the category display name (Q8-fuzzy).
  * `packageName` is deliberately NOT searched (privacy + irrelevance).
+ *
+ * Ordering: outside Favorites mode the surviving rows are reordered frequent-first
+ * (ADR-0006 D5) via [orderFrequentFirst]; Favorites keeps pinned-membership order rules —
+ * its results are NOT frequency-reordered (D5 explicitly excludes that mode). The new
+ * parameters default to "nothing frequent" so existing call sites and tests stay valid.
  */
 fun filterApps(
     apps: List<AppItem>,
     query: String,
     filter: FilterMode,
     favorites: Set<ComponentName>,
+    frequent: Set<ComponentName> = emptySet(),
+    usage: Map<ComponentName, UsageRecord> = emptyMap(),
 ): List<AppItem> {
     val q = norm(query)
-    return apps.filter { item ->
+    val results = apps.filter { item ->
         passesFilterMode(item, filter, favorites) &&
             (q.isEmpty() ||
                 matchesFuzzy(q, norm(item.rawLabel)) ||
                 matchesFuzzy(q, norm(item.category.displayName)))
+    }
+    return if (filter == FilterMode.Favorites) {
+        results
+    } else {
+        orderFrequentFirst(results, frequent, usage)
     }
 }
 

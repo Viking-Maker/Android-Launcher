@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.Executors
 
@@ -58,6 +60,27 @@ class DataStoreNornirUsageStore(
         }
     }
 
+    override fun records(): Flow<Map<ComponentName, UsageRecord>> =
+        dataStore.data.map { prefs ->
+            val folded = mutableMapOf<ComponentName, UsageRecord>()
+            for ((key, value) in prefs.asMap()) {
+                val component = decodeUsageKeyName(key.name) ?: continue
+                val record = (value as? String)?.let(::decodeRecord) ?: continue
+                if (!record.hasLaunches) continue
+                // Same component in two profiles: fold to the stronger evidence (max count,
+                // then latest timestamp). The grid ranks components (ADR-0006 D3/D5).
+                val existing = folded[component]
+                if (existing == null ||
+                    record.launchCount > existing.launchCount ||
+                    (record.launchCount == existing.launchCount &&
+                        record.lastLaunchTimestamp > existing.lastLaunchTimestamp)
+                ) {
+                    folded[component] = record
+                }
+            }
+            folded
+        }
+
     private suspend fun prefs(dataStore: DataStore<Preferences>): Preferences = dataStore.data.first()
 
     /** Release the store's private IO thread (tests and teardown). */
@@ -66,15 +89,16 @@ class DataStoreNornirUsageStore(
     }
 
     companion object {
-        /** Key prefix namespaces usage entries away from any other DataStore user. */
-        private const val PREFIX = "usage/"
+        /** Key prefix namespaces usage entries away from any other DataStore user.
+         *  Public so the read-only [UsageBackedFrequentSource] can select the same namespace. */
+        const val PREFIX_PUBLIC = "usage/"
 
         /**
          * The ADR-0006 D6 identity key name: `usage/<component>#<user>`. Public so fakes
          * and tests construct identical keys (and future reconcile/prune can reuse it).
          */
         fun usageKeyName(component: ComponentName, user: UserHandle) =
-            "$PREFIX${component.flattenToString()}#$user"
+            "$PREFIX_PUBLIC${component.flattenToString()}#$user"
 
         private fun usageKey(component: ComponentName, user: UserHandle) =
             stringPreferencesKey(usageKeyName(component, user))
@@ -84,6 +108,19 @@ class DataStoreNornirUsageStore(
          * assert on (or seed) the exact stored form.
          */
         fun encodeRecord(record: UsageRecord) = "${record.launchCount};${record.lastLaunchTimestamp}"
+
+        /**
+         * Inverse of [usageKeyName]'s naming: `"usage/<flattened>#<user>"` gives the component.
+         * Null for keys outside the usage namespace or with a malformed component part.
+         * Public so the read-only FrequentSource path can reuse it.
+         */
+        fun decodeUsageKeyName(keyName: String): ComponentName? {
+            if (!keyName.startsWith(PREFIX_PUBLIC)) return null
+            val body = keyName.removePrefix(PREFIX_PUBLIC)
+            val sep = body.lastIndexOf('#')
+            if (sep <= 0) return null
+            return ComponentName.unflattenFromString(body.substring(0, sep))
+        }
 
         /** Inverse of [encodeRecord]; a malformed value decodes to an empty record. */
         fun decodeRecord(value: String): UsageRecord = runCatching {

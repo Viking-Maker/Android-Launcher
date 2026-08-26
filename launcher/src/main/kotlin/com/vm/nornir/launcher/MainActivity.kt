@@ -20,7 +20,12 @@ import com.vm.nornir.launcher.launch.RealLauncherInvoker
 import com.vm.nornir.launcher.ui.LauncherScreen
 import com.vm.nornir.launcher.ui.LauncherViewModel
 import com.vm.nornir.launcher.usage.DataStoreNornirUsageStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import com.vm.nornir.launcher.usage.FrequentSource
 import com.vm.nornir.launcher.usage.NornirUsageStore
+import com.vm.nornir.launcher.usage.UsageBackedFrequentSource
 
 /**
  * Home screen entry point. Registered as the device default-home via
@@ -47,11 +52,23 @@ class MainActivity : ComponentActivity() {
 
     private val usageStore: NornirUsageStore by lazy { DataStoreNornirUsageStore(prefsDataStore) }
 
+    /**
+     * The frequent-first read seam (ADR-0006 D6): a derived view over [usageStore] +
+     * [appRepository], kept hot for the process lifetime so recomputes survive rotation.
+     */
+    private val frequentSource: FrequentSource by lazy {
+        UsageBackedFrequentSource(
+            apps = appRepository,
+            usage = usageStore,
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+        )
+    }
+
     /** The icon seam: cross-APK fetch behind the density-keyed LRU cache (#16). */
     private val iconLoader: IconLoader by lazy { LruIconCache(RealIconLoader(this)) }
 
     private val viewModel: LauncherViewModel by viewModels {
-        LauncherViewModel.factory(appRepository, favoritesSource, invoker, usageStore)
+        LauncherViewModel.factory(appRepository, favoritesSource, frequentSource, invoker, usageStore)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

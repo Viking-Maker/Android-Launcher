@@ -2,6 +2,7 @@ package com.vm.nornir.launcher.usage
 
 import android.content.ComponentName
 import android.os.UserHandle
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Self-tracked usage persistence seam (ADR-0006, issue #15).
@@ -34,4 +35,12 @@ interface NornirUsageStore {
      * counters) if this identity has never been launched — callers never see `null`.
      */
     fun usageFor(component: ComponentName, user: UserHandle): UsageRecord
+
+    /**
+     * Cold flow of all stored records keyed by component (profiles folded together by
+     * max count / latest timestamp — the grid ranks components, not identities; the
+     * ADR-0006 D3/D5 read path). Re-emits on every successful-launch write, which is what
+     * keeps frequent-first ordering live (#20).
+     */
+    fun records(): Flow<Map<ComponentName, UsageRecord>>
 }

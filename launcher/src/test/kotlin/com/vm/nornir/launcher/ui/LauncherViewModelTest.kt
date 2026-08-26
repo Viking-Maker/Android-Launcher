@@ -9,6 +9,7 @@ import com.vm.nornir.launcher.favorites.FakeFavoritesSource
 import com.vm.nornir.launcher.launch.FakeLauncherInvoker
 import com.vm.nornir.launcher.model.AppItem
 import com.vm.nornir.launcher.model.NornirCategory
+import com.vm.nornir.launcher.usage.FakeFrequentSource
 import com.vm.nornir.launcher.usage.FakeNornirUsageStore
 import com.vm.nornir.launcher.usage.FakePersistence
 import com.vm.nornir.launcher.usage.UsageRecord
@@ -80,16 +81,18 @@ class LauncherViewModelTest {
         val favorites: FakeFavoritesSource,
         val launcher: FakeLauncherInvoker,
         val usage: FakeNornirUsageStore,
+        val frequent: FakeFrequentSource,
         val vm: LauncherViewModel,
     )
 
-    private fun harness(apps: List<AppItem> = emptyList()): Harness {
+    private fun harness(apps: List<AppItem> = emptyList(), frequent: Set<ComponentName> = emptySet()): Harness {
         val repo = FakeAppRepository(apps)
         val favSource = FakeFavoritesSource(FakePersistence.inMemoryPrefsDataStore(scope))
+        val freqSource = FakeFrequentSource(frequent)
         val invoker = FakeLauncherInvoker()
         val store = FakeNornirUsageStore(FakePersistence.inMemoryPrefsDataStore(scope))
         usageStores += store
-        return Harness(repo, favSource, invoker, store, LauncherViewModel(repo, favSource, invoker, store))
+        return Harness(repo, favSource, invoker, store, freqSource, LauncherViewModel(repo, favSource, freqSource, invoker, store))
     }
 
     /**
@@ -264,9 +267,14 @@ class LauncherViewModelTest {
         val vscode = item("vscode", "VS Code", 7)   // PRODUCTIVITY
         val misc = item("misc", "Misc", null)       // OTHER
         val h = harness(apps = listOf(steam, vscode, misc))
+        // ADR-0006 D5 (issue #20): outside Favorites mode results sort frequent-first,
+        // then alphabetically — with no usage yet that is plain alphabetical (Misc/Steam/VS Code).
+        val miscSorted = item("misc", "Misc", null)
+        val steamSorted = item("steam", "Steam", 0)
+        val vscodeSorted = item("vscode", "VS Code", 7)
         h.vm.assertState(
             LauncherUiState(
-                results = listOf(steam, vscode, misc),
+                results = listOf(miscSorted, steamSorted, vscodeSorted),
                 availableCategories = listOf(NornirCategory.GAME, NornirCategory.PRODUCTIVITY, NornirCategory.OTHER),
             ),
         )
@@ -282,7 +290,7 @@ class LauncherViewModelTest {
             scope.testScheduler.advanceUntilIdle()
             val s = expectMostRecentItem()
             assertEquals(listOf(NornirCategory.GAME, NornirCategory.OTHER), s.availableCategories)
-            assertEquals(listOf(misc, steam), s.results)
+            assertEquals(listOf(misc, steam), s.results) // "Misc" < "Steam" alphabetically (D5)
             assertEquals(listOf(NornirCategory.GAME, NornirCategory.OTHER), h.vm.uiState.value.availableCategories)
             cancelAndIgnoreRemainingEvents()
         }
@@ -374,6 +382,33 @@ class LauncherViewModelTest {
             // Timestamp is real (VM defaults nowMillis); pin it to the launch window.
             assertTrue(record.lastLaunchTimestamp >= beforeLaunch)
             assertTrue(record.hasLaunches)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `frequent seam reorders the All-mode grid - favorites mode untouched`() = runTest {
+        // Issue #20 code side: the FrequentSource seam drives D5 ordering through the VM.
+        val a = item("aaa", "Aaa", null)
+        val b = item("bbb", "Bbb", null)
+        val h = harness(apps = listOf(a, b), frequent = setOf(b.component))
+        // Seed usage so the frequent block itself ranks by count (b before anything else).
+        val store = h.usage
+        store.recordLaunch(b.component, b.user)
+        h.vm.assertState(
+            LauncherUiState(
+                results = listOf(b, a),
+                availableCategories = listOf(NornirCategory.OTHER),
+            ),
+        )
+        // Favorites chip: only pinned survive; no frequency reorder applies (D5).
+        val pinned = a // already in the catalog; frequent set holds only b
+        h.vm.uiState.test {
+            h.favorites.addFavorite(pinned.component)
+            advanceUntilIdle()
+            h.vm.handle(LauncherEvent.FilterSelected(FilterMode.Favorites))
+            advanceUntilIdle()
+            assertEquals(listOf("Aaa"), expectMostRecentItem().results.map { it.rawLabel })
             cancelAndIgnoreRemainingEvents()
         }
     }

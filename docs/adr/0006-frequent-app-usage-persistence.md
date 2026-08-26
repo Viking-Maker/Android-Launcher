@@ -140,6 +140,16 @@ private fun orderFrequentFirst(
 > Nornir launch"); failed launches never inflate the frequent ranking. The interface names differ from the sketch
 > (`launchApp` → `launch`); the single-instrumentation-point property (D1) is unchanged.
 - **Read path:** `interface FrequentSource { val frequent: StateFlow<Set<ComponentName>> }` computes the D3 top-N from `NornirUsageStore` (recomputed on `repo.apps` change and on each `recordLaunch`). This is the companion seam to ADR-0004's `FavoritesSource`.
+
+> **Implementation note (realized in #20).** The read path ships as specified: `FrequentSource` is a hot
+> `StateFlow<Set<ComponentName>>`; `UsageBackedFrequentSource` derives it from `AppRepository.apps × NornirUsageStore.records()`
+> so the "recomputed on catalog change and on each launch" behavior falls out of flow re-emission (no manual triggers).
+> `records()` folds multi-profile entries per component (max count, then latest timestamp — the grid ranks components).
+> The D3 selection (`frequentTopN`: N = 6, `launchCount DESC`, ties by `lastLaunchTimestamp DESC`, zero-count excluded) and
+> the D5 reorder (`orderFrequentFirst`: frequent block first, remainder alphabetical) are pure functions in
+> `ui/FrequentOrdering.kt`; `filterApps` threads them outside Favorites mode. D5's exclusion of Favorites from
+> frequency reorder is enforced in code — note issue #11's "Favorites filter = pinned ∪ top-N" wording predates this ADR
+> and is superseded by it (flagged on #11).
 - **Reconcile / prune:** on `LauncherApps.Callback` `onPackageRemoved` / `onPackagesUnavailable` (already wired in ADR-0003 for the catalog `StateFlow`), delete the matching key(s) from the usage map; ignore any stored key whose identity no longer appears in `repo.apps` (defensive on read). This prevents orphan counters and keeps usage in lockstep with the live catalog.
 
 ```kotlin
