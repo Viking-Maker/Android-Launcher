@@ -379,6 +379,25 @@ class LauncherViewModelTest {
     }
 
     @Test
+    fun `failed launch does not record usage`() = runTest {
+        // Issue #31 Finding 1: a stale/uninstalled entry must not inflate the frequent
+        // ranking — usage is recorded only when the invoker reports the launch started.
+        val app = item("stale", "Stale", null)
+        val h = harness(apps = listOf(app))
+        h.launcher.failNextFor(app.component)
+        h.vm.uiState.test {
+            scope.testScheduler.advanceUntilIdle()
+            assertEquals(1, expectMostRecentItem().results.size)
+            h.vm.handle(LauncherEvent.Launch(app))
+            assertTrue(h.launcher.wasLaunched(app)) // the attempt went out
+            val record = h.usage.usageFor(app.component, app.user)
+            assertEquals(0, record.launchCount)    // …but usage did not move
+            assertTrue(!record.hasLaunches)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `Launch is a pure side effect - uiState unchanged`() = runTest {
         val app = item("mail", "Mail", null)
         val h = harness(apps = listOf(app))

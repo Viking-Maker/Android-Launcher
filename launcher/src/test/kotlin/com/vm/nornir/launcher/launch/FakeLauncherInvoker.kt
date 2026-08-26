@@ -13,7 +13,12 @@ import com.vm.nornir.launcher.model.AppItem
  * `LauncherApps` binder. Mirrors the in-memory fake seams used by the catalog/persistence tests
  * (issue #11 primary-seam strategy).
  */
-class FakeLauncherInvoker : LauncherInvoker {
+class FakeLauncherInvoker(
+    /** Components whose launches always report failure (issue #31 Finding 1 test support). */
+    private val failingComponents: Set<ComponentName> = emptySet(),
+) : LauncherInvoker {
+
+    private val dynamicFailures = mutableSetOf<ComponentName>()
 
     /** Immutable record of a single launch the UI asked the seam to perform. */
     data class LaunchRecord(
@@ -27,8 +32,19 @@ class FakeLauncherInvoker : LauncherInvoker {
 
     private val _launches = mutableListOf<LaunchRecord>()
 
-    override fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions?) {
+    override fun launch(component: ComponentName, user: UserHandle, options: ActivityOptions?): Boolean {
         _launches.add(LaunchRecord(component, user, options))
+        return component !in failingComponents && component !in dynamicFailures
+    }
+
+    /** Make every subsequent launch of [component] report failure until [succeedAgain]. */
+    fun failNextFor(component: ComponentName) {
+        dynamicFailures += component
+    }
+
+    /** Clear a one-off failure injected with [failNextFor]. */
+    fun succeedAgain(component: ComponentName) {
+        dynamicFailures -= component
     }
 
     /** Convenience: the most recent launch, or `null` if none has happened yet. */

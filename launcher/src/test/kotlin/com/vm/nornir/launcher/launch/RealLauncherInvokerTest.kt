@@ -5,6 +5,7 @@ import android.os.Process
 import android.os.UserHandle
 import androidx.test.core.app.ApplicationProvider
 import com.vm.nornir.launcher.model.AppItem
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -42,6 +43,22 @@ class RealLauncherInvokerTest {
             ComponentName("com.example", "com.example.Main"),
             personalUser,
         )
+    }
+
+    @Test
+    fun launchReportsFalseWhenLauncherAppsServiceIsAbsent() {
+        // Issue #31 Finding 1: an environment without a LauncherApps service (the unbound
+        // binder guard) must report failure — the caller must not record usage.
+        val noLauncherApps = object : android.content.ContextWrapper(context) {
+            // Context.getSystemService(Class) resolves through the string-name lookup.
+            override fun getSystemService(name: String): Any? =
+                if (name == "launcherapps") null else super.getSystemService(name)
+        }
+        val started = RealLauncherInvoker(noLauncherApps).launch(
+            ComponentName("com.example", "com.example.Main"),
+            personalUser,
+        )
+        assertFalse(started)
     }
 
     @Test

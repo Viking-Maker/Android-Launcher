@@ -27,7 +27,7 @@ import java.util.concurrent.Executors
  * data-class values, and a Proto schema is out of proportion for two scalars).
  *
  * Threading: [edit] is a `suspend fun`, but the launch flow calls this seam synchronously
- * (single write point in `LauncherInvoker.launchApp`). The bridge runs on a private
+ * (write point: `LauncherViewModel.handle(Launch)`, success-conditional — #31). The bridge runs on a private
  * single-thread dispatcher so callers never block on the app's main/default dispatchers,
  * and DataStore's writer lock is contended only against itself.
  */

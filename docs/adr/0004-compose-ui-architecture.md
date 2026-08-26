@@ -208,7 +208,9 @@ fun matchesFuzzy(query: String, text: String): Boolean =
 
 `norm()` = lowercase + Unicode NFD + strip combining marks (accent-tolerant: "réd"↔"red", "É"↔"e").
 `isSubsequence` catches partial typing ("vsco"→"VS Code", "brv"→"Brave"); the bounded `levenshtein`
-(`tol = max(1, len/4)`) catches typos ("spoitfy"→"Spotify"). `matchesFuzzy` is pure and fully unit-testable
+(`tol = max(1, len/4)`) catches typos ("sporify"→"Spotify"; a transposition like
+"spoitfy" is Levenshtein distance 2 and deliberately does NOT match at this tolerance —
+raise to Damerau-Levenshtein if that is ever wanted). `matchesFuzzy` is pure and fully unit-testable
 on the `filterApps` signature with zero Compose/Android.
 
 ### 9. Component decomposition (Q9-a) — the MVP implements exactly this
